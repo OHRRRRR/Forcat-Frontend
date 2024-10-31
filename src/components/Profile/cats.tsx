@@ -1,28 +1,41 @@
 import { useEffect, useState } from "react";
-import axios from "axios";
 import UserProfile from "../../assets/svg/UserProfile";
 import { Block, Text, Button } from "../../style/ui";
-import CatEdit from "../../pages/Profile/catEdit"; // CatEdit 모달 컴포넌트 임포트
-
-interface Cat {
-  name: string;
-  cat_breed_name: string;
-  days_since_birth: number;
-  gender: number;
-  is_neutered: number;
-  weight: string;
-  profile_image: string;
-}
+import CatEdit from "../../pages/Profile/catEdit";
+import { Cat } from "../../interfaces/info";
+import axiosInstance from "../../api/axiosInstance";
+import { useUserId } from "../../hooks/useUserId";
 
 export default function Cats() {
   const [cats, setCats] = useState<Cat[]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
+  const [, setLoading] = useState<boolean>(true);
   const [isEditModalOpen, setIsEditModalOpen] = useState<boolean>(false);
   const [selectedCat, setSelectedCat] = useState<Cat | null>(null);
+  const userId = useUserId();
 
   useEffect(() => {
-    axios
-      .get("https://forcat.store/api/users/1/cats")
+    fetchCats();
+  }, []);
+
+  const fetchCats = () => {
+    axiosInstance
+      .get(`/users/${userId}/cats`)
+      .then((response) => {
+        const catData = Array.isArray(response.data)
+          ? response.data
+          : [response.data];
+        setCats(catData);
+        setLoading(false);
+      })
+      .catch((error) => {
+        console.error("고양이 정보를 가져오는데 실패했습니다:", error);
+        setLoading(false);
+      });
+  };
+
+  useEffect(() => {
+    axiosInstance
+      .get(`/users/${userId}/cats`)
       .then((response) => {
         const catData = Array.isArray(response.data)
           ? response.data
@@ -54,16 +67,13 @@ export default function Cats() {
   };
 
   const handleSave = (updatedCat: Cat) => {
-    // 업데이트된 고양이 정보를 반영하여 상태를 갱신
     setCats((prevCats) =>
-      prevCats.map((cat) => (cat.name === updatedCat.name ? updatedCat : cat))
+      prevCats.map((cat) =>
+        cat.cat_id === updatedCat.cat_id ? updatedCat : cat
+      )
     );
     closeEditModal();
   };
-
-  if (loading) {
-    return <Text.Notice200>로딩 중...</Text.Notice200>;
-  }
 
   return (
     <Block.FlexBox padding="20px" direction="column">
@@ -99,7 +109,7 @@ export default function Cats() {
                 나이
               </Text.Notice200>
               <Text.Notice200>
-                {getMonthsFromDays(cat.days_since_birth)}
+                {getMonthsFromDays(cat.days_since_birth || 0)}
               </Text.Notice200>
             </Block.FlexBox>
             <Block.FlexBox margin="5px 0">
@@ -153,10 +163,11 @@ export default function Cats() {
         </Block.FlexBox>
       ))}
 
-      {isEditModalOpen && (
+      {isEditModalOpen && selectedCat && (
         <CatEdit
           cat={selectedCat}
           onClose={closeEditModal}
+          onReload={fetchCats} // 프로필 페이지 reload
           onSave={handleSave}
         />
       )}

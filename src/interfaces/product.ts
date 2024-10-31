@@ -51,3 +51,17 @@ export interface ICat {
     profile_image?: string;
     days_since_birth?: string;
 }
+
+export interface IInputData {
+    name: string;
+    address: string;
+    address_detail: string;
+    nickname: string;
+    catName: string;
+    catBreed: string;
+    birthDate: string;
+    catGender: string;
+    isNeutered: string;
+    catWeight: string;
+    [key: string]: string;
+}
